@@ -1465,5 +1465,6 @@ also removed Detector::printGeometry function from Detector class
 2018/02/28 Brian Clark:
 
 Updating AraSim.cc to be compatible with INTERACTION_MODE==5
+Also updating Primaries.cc and Primaries.h to be compatible with INTERACTION_MODE==5
 
 ============================================================================

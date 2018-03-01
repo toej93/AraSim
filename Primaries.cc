@@ -26,12 +26,12 @@
 //#include "icemodel.hh"
 
 #include <cmath>
-
-
+#include <ctime>
+#include "time.h"
 
 #include "TH2D.h"
 #include "TCanvas.h"
-
+#include "TMath.h"
 
 ClassImp(Y);
 ClassImp(Primaries);
@@ -1033,395 +1033,287 @@ Interaction::Interaction(IceModel *antarctica, Detector *detector, Settings *set
 // Neutrino event Interaction class
 Interaction::Interaction (double pnu, string nuflavor, int nu_nubar, int &n_interactions, IceModel *antarctica, Detector *detector, Settings *settings1, Primaries *primary1, Signal *signal, Secondaries *sec1 ) {
 
-    Initialize ();
+	Initialize ();
 
 
-    if (settings1->NNU_THIS_THETA==1) {    // set specific theta angle for nnu
-        nnu = primary1->GetThatDirection(settings1->NNU_THETA, settings1->NNU_D_THETA, settings1->NNU_PHI, settings1->NNU_D_PHI, settings1->NNU_THIS_PHI);
-//        nnu = primary1->GetThatDirection(settings1->NNU_THETA, settings1->NNU_D_THETA);
-    }
-    else { // nnu angle random
-        nnu = primary1->GetAnyDirection(settings1->NNU_PHI, settings1->NNU_D_PHI, settings1->NNU_THIS_PHI);
-//        nnu = primary1->GetAnyDirection();
-    }
+	if (settings1->NNU_THIS_THETA==1) {    // set specific theta angle for nnu
+		nnu = primary1->GetThatDirection(settings1->NNU_THETA, settings1->NNU_D_THETA, settings1->NNU_PHI, settings1->NNU_D_PHI, settings1->NNU_THIS_PHI);
+	//nnu = primary1->GetThatDirection(settings1->NNU_THETA, settings1->NNU_D_THETA);
+	}
+	else { // nnu angle random
+		nnu = primary1->GetAnyDirection(settings1->NNU_PHI, settings1->NNU_D_PHI, settings1->NNU_THIS_PHI);
+	//nnu = primary1->GetAnyDirection();
+	}
         
-    cone_axis = nnu;
+	cone_axis = nnu;
 
 
-    setCurrent(primary1, settings1);
-//    setCurrent(primary1);   // set current of interaction (cc or nc) ! (this should be change if this is secondary interaction. if first interaction was cc, then there is no secondary cc)
-    //cout<<"currentint : "<<currentint<<endl;
+	setCurrent(primary1, settings1);
+	// setCurrent(primary1);   // set current of interaction (cc or nc) ! (this should be change if this is secondary interaction. if first interaction was cc, then there is no secondary cc)
+	//cout<<"currentint : "<<currentint<<endl;
 
-    // pick posnu (position where neutrino interact with ice
-    // also they will calculate r_in (position nu enter the earth), r_enterice (position nu enter the ice), nuexitice (position nu exit the ice)
-    //
+	// pick posnu (position where neutrino interact with ice
+	// also they will calculate r_in (position nu enter the earth), r_enterice (position nu enter the ice), nuexitice (position nu exit the ice)
+	//
 
-    double L0 = 0.;
-
-
-    if (settings1->CALPULSER_ON == 1)  // calpulser1 Hpol
-//    {
-//        PickExact(antarctica, detector, settings1, 50.27, 36.35*PI/180., 64.76*PI/180.); 
-//        primary1->IsCalpulser = 1;
-//    }
-    {
-        PickExact(antarctica, detector, settings1, 29.5, 2.81*PI/180., -93.6*PI/180.);
-        primary1->IsCalpulser = 1;
-    }
-    else if(settings1->CALPULSER_ON == 2)  // calpulser2 Vpol
-    {
-        //PickExact(antarctica, detector, settings1, 47.18, 30.15*PI/180., -36.56*PI/180.); 
-        PickExact(antarctica, detector, settings1, 47.18, -20.*PI/180., 34.*PI/180.); // calpulser 2 Vpol location
-        primary1->IsCalpulser = 2;
-    } 
-    else if(settings1->CALPULSER_ON == 3)   // calpulser2 Hpol
-    {
-        //PickExact(antarctica, detector, settings1, 47.18, 30.15*PI/180., -36.56*PI/180.); 
-        PickExact(antarctica, detector, settings1, 47.18, -28.*PI/180., 34.*PI/180.); // calpulser 2 Hpol location
-        primary1->IsCalpulser = 3;
-    } 
-    else if(settings1->CALPULSER_ON == 4)   // calpulser2 middle of Vpol & Hpol
-    {
-        //PickExact(antarctica, detector, settings1, 47.18, 30.15*PI/180., -36.56*PI/180.); 
-        PickExact(antarctica, detector, settings1, 47.18, -24.*PI/180., 34.*PI/180.); // calpulser 2 Hpol location
-        primary1->IsCalpulser = 4;
-    } 
-    else if (settings1->CALPULSER_ON == 5)
-    {
-        // insert code to switch between the two calpulsers here
-    }
-    else if (settings1->CALPULSER_ON == 0){
-        primary1->IsCalpulser = 0;
-
-    if (settings1->INTERACTION_MODE == 0) {    // for pickunbiased. posnu will be selected the sphere around the stations
-        //Interaction::PickUnbiased( antarctica );
-        
-        //pickposnu = 0;
-        /*
-        //  try PickUnbiased until it founds usable posnu
-        while (pickposnu==0) {
-            PickUnbiased( antarctica );
-        }
-        */
-        //  try PickUnbiased just once, no matter pickposnu == 0 or 1
-        //PickUnbiased( antarctica ); // PickUnbiased no more used
-
-        L0 = PickNear_Sphere (antarctica, detector, settings1);
-
-    }
-    else if (settings1->INTERACTION_MODE == 1) {   // for picknear. posnu will be only near by ARA core with cylinderical volume
-        
-        //Interaction::PickNear (antarctica, detector, settings1);
-        PickNear_Cylinder (antarctica, detector, settings1);
-
-    } else if (settings1->INTERACTION_MODE == 2){       
-//        PickExact(antarctica, detector, settings1, 400, 0, 0); 
-//          PickExact(antarctica, detector, settings1, 1000, +PI/4., 0.);
-	  PickExact(antarctica, detector, settings1, settings1->POSNU_R, settings1->POSNU_THETA, settings1->POSNU_PHI);
-    }
-    else if (settings1->INTERACTION_MODE == 4) {   // for picknear. posnu will be only near by ARA core with cylinderical volume above the ice
-      //Interaction::PickNear (antarctica, detector, settings1);
-      PickNear_Cylinder_AboveIce (antarctica, detector, settings1);
-      
-    }
+	double L0 = 0.;
 
 
+	if (settings1->CALPULSER_ON == 1)  // calpulser1 Hpol
+		//    {
+		//        PickExact(antarctica, detector, settings1, 50.27, 36.35*PI/180., 64.76*PI/180.); 
+		//        primary1->IsCalpulser = 1;
+		//    }
+	{
+		PickExact(antarctica, detector, settings1, 29.5, 2.81*PI/180., -93.6*PI/180.);
+		primary1->IsCalpulser = 1;
+	}
+	else if(settings1->CALPULSER_ON == 2)  // calpulser2 Vpol
+	{
+		//PickExact(antarctica, detector, settings1, 47.18, 30.15*PI/180., -36.56*PI/180.); 
+		PickExact(antarctica, detector, settings1, 47.18, -20.*PI/180., 34.*PI/180.); // calpulser 2 Vpol location
+		primary1->IsCalpulser = 2;
+	} 
+	else if(settings1->CALPULSER_ON == 3)   // calpulser2 Hpol
+	{
+		//PickExact(antarctica, detector, settings1, 47.18, 30.15*PI/180., -36.56*PI/180.); 
+		PickExact(antarctica, detector, settings1, 47.18, -28.*PI/180., 34.*PI/180.); // calpulser 2 Hpol location
+		primary1->IsCalpulser = 3;
+	} 
+	else if(settings1->CALPULSER_ON == 4)   // calpulser2 middle of Vpol & Hpol
+	{
+		//PickExact(antarctica, detector, settings1, 47.18, 30.15*PI/180., -36.56*PI/180.); 
+		PickExact(antarctica, detector, settings1, 47.18, -24.*PI/180., 34.*PI/180.); // calpulser 2 Hpol location
+		primary1->IsCalpulser = 4;
+	} 
+	else if (settings1->CALPULSER_ON == 5)
+	{
+		// insert code to switch between the two calpulsers here
+	}
+	else if (settings1->CALPULSER_ON == 0){
+		primary1->IsCalpulser = 0;
 
-    }
-    //cout<<" Finished Pick posnu, r_in, r_enterice, nuexitice!!"<<endl;
+		if (settings1->INTERACTION_MODE == 0) {    // for pickunbiased. posnu will be selected the sphere around the stations
+			L0 = PickNear_Sphere (antarctica, detector, settings1);
+		}
+		else if (settings1->INTERACTION_MODE == 1) {   // for picknear. posnu will be only near by ARA core with cylinderical volume
+			PickNear_Cylinder (antarctica, detector, settings1);
+		} else if (settings1->INTERACTION_MODE == 2){       
+			PickExact(antarctica, detector, settings1, settings1->POSNU_R, settings1->POSNU_THETA, settings1->POSNU_PHI);
+		}
+		else if (settings1->INTERACTION_MODE == 4) {   // for picknear. posnu will be only near by ARA core with cylinderical volume above the ice
+			PickNear_Cylinder_AboveIce (antarctica, detector, settings1);
+		}
+		else if (settings->INTERACTION_MODE == 5){ //for cosmic mode. posnu is set by the RA, DEC, and UTC time entered
+			PickFromRAandDEC(antarctica, detector, settings1, settings1->RA, settings1->DEC, settings1->UTC, settings1->POSNU_R, settings1->LAT, settings1->LON);
+		}
+	}
+	//cout<<" Finished Pick posnu, r_in, r_enterice, nuexitice!!"<<endl;
 
+	// now set N at posnu
+	signal->SetNDepth( antarctica->GetN( posnu ) );
+	indexN = signal->N_DEPTH;
+	changle = signal->changle;
 
-    // now set N at posnu
-    signal->SetNDepth( antarctica->GetN( posnu ) );
-    indexN = signal->N_DEPTH;
-    changle = signal->changle;
+	//sigma_err = primary1->GetSigma( pnu, sigma, len_int_kgm2, settings1, nu_nubar, currentint);
+	sigma_err = primary1->GetSigma( pnu, sigma, len_int_kgm2, settings1, nu_nubar, currentint, len_int_kgm2_total );
+	//--------------------------------------------------
+	//     cout<<"len_int_kgm2 from GetSigma : "<<len_int_kgm2<<endl;
+	//     cout<<"sigma from GetSigma : "<<sigma<<endl;
+	//     cout<<" Finished SetSigma!!"<<endl;
+	//-------------------------------------------------- 
 
+	double tmp; // for useless information
 
+	myair = primary1->GetThisAirColumn( settings1, r_in, nnu, posnu, tmp, tmp, tmp, tmp);
+	//cout<<" Finished GetThisAirColumn!!"<<endl;
 
-    //sigma_err = primary1->GetSigma( pnu, sigma, len_int_kgm2, settings1, nu_nubar, currentint);
-    sigma_err = primary1->GetSigma( pnu, sigma, len_int_kgm2, settings1, nu_nubar, currentint, len_int_kgm2_total );
-//--------------------------------------------------
-//     cout<<"len_int_kgm2 from GetSigma : "<<len_int_kgm2<<endl;
-//     cout<<"sigma from GetSigma : "<<sigma<<endl;
-//     cout<<" Finished SetSigma!!"<<endl;
-//-------------------------------------------------- 
+	//cout<<"test EarthModel, radii[0] : "<<antarctica->radii[0]<<endl;
 
-    double tmp; // for useless information
+	// check tau mode
+	int taumodes1 = 0.;
 
-    myair = primary1->GetThisAirColumn( settings1, r_in, nnu, posnu, tmp, tmp, tmp, tmp);
-    //cout<<" Finished GetThisAirColumn!!"<<endl;
-
-    //cout<<"test EarthModel, radii[0] : "<<antarctica->radii[0]<<endl;
-
-
-    // check tau mode
-    int taumodes1 = 0.;
-
-    if (settings1->taumodes ==1){
-            double xrndm = gRandom->Rndm();
-            if(xrndm <.5)
-                    taumodes1 = 0;
-            else
-                    taumodes1= 1;
-    }
-    int trip =0;
-    double lptau =0;
-    double ptauf = 0.;
+	if (settings1->taumodes ==1){
+		double xrndm = gRandom->Rndm();
+		if(xrndm <.5)
+			taumodes1 = 0;
+		else
+			taumodes1= 1;
+	}
+	int trip =0;
+	double lptau =0;
+	double ptauf = 0.;
     
-    if (settings1->taumodes ==1){
-            ptauf =0;
-            double Emin = 1E19*exp(-7.5);
-            // while (ptauf <  1E19*exp(-7.5)){
-            double ptaurndm= gRandom->Rndm();
+	if (settings1->taumodes ==1){
+		ptauf =0;
+		double Emin = 1E19*exp(-7.5);
+		// while (ptauf <  1E19*exp(-7.5)){
+		double ptaurndm= gRandom->Rndm();
             
-            lptau =log10(Emin)+ptaurndm*(log10(pnu)-log10(Emin));
-            ptauf = pow(10,lptau);
+		lptau =log10(Emin)+ptaurndm*(log10(pnu)-log10(Emin));
+		ptauf = pow(10,lptau);
             
-            if (ptauf < 1E16){
-                    trip =1;
-            }
-    }
+		if (ptauf < 1E16){
+			trip =1;
+		}
+	}
 
+	elast_y = primary1->Gety(settings1, pnu, nu_nubar, currentint);  // set inelasticity
+	//cout<<"set inelasticity : "<<elast_y<<endl;
 
-   
-    elast_y = primary1->Gety(settings1, pnu, nu_nubar, currentint);  // set inelasticity
-    //cout<<"set inelasticity : "<<elast_y<<endl;
+	//sec1->GetEMFrac( settings1, nuflavor, current, taudecay, elast_y, pnu, emfrac, hadfrac, n_interactions);   // set em, had frac values.
+	//cout<<"set emfrac : "<<emfrac<<" hadfrac : "<<hadfrac<<endl;
+	sec1->GetEMFrac(settings1, nuflavor, current, taudecay, elast_y, pnu, emfrac, hadfrac, n_interactions, taumodes1, ptauf); // set em, had frac values
 
-   
-    //sec1->GetEMFrac( settings1, nuflavor, current, taudecay, elast_y, pnu, emfrac, hadfrac, n_interactions);   // set em, had frac values.
-    //cout<<"set emfrac : "<<emfrac<<" hadfrac : "<<hadfrac<<endl;
-    sec1->GetEMFrac(settings1, nuflavor, current, taudecay, elast_y, pnu, emfrac, hadfrac, n_interactions, taumodes1, ptauf); // set em, had frac values
-
-
-
-    // below this will be only done when we have chosen the usable posnu
-    if ( pickposnu == 1 ) {
+	// below this will be only done when we have chosen the usable posnu
+	if ( pickposnu == 1 ) {
       
-        if (settings1->INTERACTION_MODE==2) {
-            antarctica->Getchord(len_int_kgm2_total, r_in, posnu, 0, chord, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered );
-        }
-      
+		if (settings1->INTERACTION_MODE==5) {
+			antarctica->Getchord(len_int_kgm2_total, r_in, posnu, 0, chord, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered );
+		}
+		if (settings1->INTERACTION_MODE==2) {
+			antarctica->Getchord(len_int_kgm2_total, r_in, posnu, 0, chord, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered );
+		}
+		if (settings1->INTERACTION_MODE==1) {
+			antarctica->Getchord(len_int_kgm2_total, r_in, posnu, 0, chord, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered );
+		}
+		else if (settings1->INTERACTION_MODE==0) {
+			antarctica->Getchord(primary1, settings1, antarctica, sec1, len_int_kgm2_total, r_in, r_enterice, nuexitice, posnu, 0, chord, probability, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered, nuflavor, pnu, ptauf, nu_nubar, currentint, taumodes1 , L0);
+		}
 
-        //if (settings1->GETCHORD_MODE==0) {
-        if (settings1->INTERACTION_MODE==1) {
-            antarctica->Getchord(len_int_kgm2_total, r_in, posnu, 0, chord, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered );
-        }
+		//cout<<" Finished Getchord!!"<<endl;
 
-        //else if (settings1->GETCHORD_MODE==1 && settings1->INTERACTION_MODE==0) {
-        else if (settings1->INTERACTION_MODE==0) {
-          antarctica->Getchord(primary1, settings1, antarctica, sec1, len_int_kgm2_total, r_in, r_enterice, nuexitice, posnu, 0, chord, probability, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered, nuflavor, pnu, ptauf, nu_nubar, currentint, taumodes1 , L0);
-        }
+		if (settings1->SIMULATION_MODE == 0) { // freq domain simulation (old mode)
 
-        /*
-        else if (settings1->GETCHORD_MODE==1) {
-            //antarctica->Getchord(len_int_kgm2_total, r_in, posnu, 0, chord, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered );
-            antarctica->Getchord(primary1, settings1, antarctica, sec1, len_int_kgm2_total, r_in, r_enterice, nuexitice, posnu, 0, chord, probability, weight, nearthlayers, myair, total_kgm2, crust_entered, mantle_entered, core_entered, nuflavor, pnu, ptauf, nu_nubar, currentint, taumodes1 );
-        }
-        */
+			// set vmmhz1m (which is generally used for all detector antennas)
+			// vmmhz1m is calculated at 1m, cherenkov angle
 
-        //cout<<" Finished Getchord!!"<<endl;
+			for (int i=0; i<detector->GetFreqBin(); i++) {   // for detector freq bin numbers
 
+				d_theta_em.push_back(0); // prepare d_theta_em and d_theta_had for GetSpread
+				d_theta_had.push_back(0);
+				vmmhz1m.push_back(0);
+				vmmhz1m_em.push_back(0);
 
+				signal->GetSpread(pnu, emfrac, hadfrac, detector->GetFreq(i), d_theta_em[i], d_theta_had[i]);   // get max spread angle and save at d_theta_em[i] and d_theta_had[i]
+				//cout<<"Freq : "<<detector->GetFreq(i)<<endl;
+				//cout<<"GetSpread, theta_em : "<<d_theta_em[i]<<" theta_had : "<<d_theta_had[i]<<endl;
 
+				//vmmhz1m[i] = signal->GetVmMHz1m( pnu, detector->GetFreq(i) );   // get VmMHz at 1m at cherenkov angle at GetFreq(i)
 
-           if (settings1->SIMULATION_MODE == 0) { // freq domain simulation (old mode)
+				if (primary1->IsCalpulser == 0){
 
-               // set vmmhz1m (which is generally used for all detector antennas)
-               // vmmhz1m is calculated at 1m, cherenkov angle
-               //
+					if (settings1->AVZ_NORM_FACTOR_MODE == 0) { // use previous normalization factor ( with sqrt(2) )
+						vmmhz1m[i] = signal->GetVmMHz1m( pnu, detector->GetFreq(i) );   // get VmMHz at 1m at cherenkov angle at GetFreq(i)
+					}
+					else if (settings1->AVZ_NORM_FACTOR_MODE == 1) { // use new normalization factor ( without sqrt(2) )
+						vmmhz1m[i] = signal->GetVmMHz1m( pnu, detector->GetFreq(i) ) / sqrt(2.);   // get VmMHz at 1m at cherenkov angle at GetFreq(i), cancel sqrt(2) factor
+					}
+				} else {
+					if (i <56){
+						vmmhz1m[i] = signal->GetVmMHz1mCalPulser( i );
+					} else {
+						vmmhz1m[i] =   signal->GetVmMHz1mCalPulser( 55 );
+					}   
+				}
 
+				//std::cout << "Frequency bin:vmmhz1m:: " << i << " : " << vmmhz1m[i] << " : " << detector->GetFreqBin() << " : " << detector->GetFreq(i) << std::endl;
+			}    // end detector freq bin numbers loop
 
-               for (int i=0; i<detector->GetFreqBin(); i++) {   // for detector freq bin numbers
+		}// if SIMULATION_MODE = 0 (freq domain old method)
 
+		else if (settings1->SIMULATION_MODE == 1) { // time domain simulation (new mode)
 
-                d_theta_em.push_back(0); // prepare d_theta_em and d_theta_had for GetSpread
-                d_theta_had.push_back(0);
-                vmmhz1m.push_back(0);
-                vmmhz1m_em.push_back(0);
+			// here, we just get the shower profile for EM, HAD showers 
+			// after we get raytrace solutions, and obtain the view angle, we calculate the signal at 1m and propagate them
+			//cout<<"0";
 
+			// only EM shower
+			if ( settings1->SHOWER_MODE == 0 ) {
+				if ( emfrac > 1.e-10 ) {
+					signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
+				}
+				else LQ = 0;
+				primary_shower = 0;
+				//cout<<"LQ : "<<LQ<<endl;
+			}
+			// only HAD shower
+			else if ( settings1->SHOWER_MODE == 1 ) {
+				if ( hadfrac > 1.e-10 ) {
+					signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
+				}
+				else LQ = 0;
+				primary_shower = 1;
+				//cout<<"LQ : "<<LQ<<endl;
+			}
+			// use both EM and HAD 
+			else if ( settings1->SHOWER_MODE == 2 ) {
+				if ( emfrac > 1.e-10 ) {
+					signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, EM_shower_depth_m, EM_shower_Q_profile, EM_LQ );
+				}
+				else EM_LQ = 0;
 
-                   signal->GetSpread(pnu, emfrac, hadfrac, detector->GetFreq(i), d_theta_em[i], d_theta_had[i]);   // get max spread angle and save at d_theta_em[i] and d_theta_had[i]
-                   //cout<<"Freq : "<<detector->GetFreq(i)<<endl;
-                   //cout<<"GetSpread, theta_em : "<<d_theta_em[i]<<" theta_had : "<<d_theta_had[i]<<endl;
+				if ( hadfrac > 1.e-10 ) {
+					signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, HAD_shower_depth_m, HAD_shower_Q_profile, HAD_LQ );
+				}
+				else HAD_LQ = 0;
 
-                   //vmmhz1m[i] = signal->GetVmMHz1m( pnu, detector->GetFreq(i) );   // get VmMHz at 1m at cherenkov angle at GetFreq(i)
-
-
-                   if (primary1->IsCalpulser == 0){
-
-                       if (settings1->AVZ_NORM_FACTOR_MODE == 0) { // use previous normalization factor ( with sqrt(2) )
-                           vmmhz1m[i] = signal->GetVmMHz1m( pnu, detector->GetFreq(i) );   // get VmMHz at 1m at cherenkov angle at GetFreq(i)
-                       }
-                    
-                       else if (settings1->AVZ_NORM_FACTOR_MODE == 1) { // use new normalization factor ( without sqrt(2) )
-                           vmmhz1m[i] = signal->GetVmMHz1m( pnu, detector->GetFreq(i) ) / sqrt(2.);   // get VmMHz at 1m at cherenkov angle at GetFreq(i), cancel sqrt(2) factor
-                       }
-
-                   } else {
-                       if (i <56){
-                       vmmhz1m[i] = signal->GetVmMHz1mCalPulser( i );
-                       } else {
-                       vmmhz1m[i] =   signal->GetVmMHz1mCalPulser( 55 );
-                       }
-                       
-                   }
-
-
-                   
-    //            std::cout << "Frequency bin:vmmhz1m:: " << i << " : " << vmmhz1m[i] << " : " << detector->GetFreqBin() << " : " << detector->GetFreq(i) << std::endl;
-               }    // end detector freq bin numbers loop
-
-           }// if SIMULATION_MODE = 0 (freq domain old method)
-
-
-           else if (settings1->SIMULATION_MODE == 1) { // time domain simulation (new mode)
-
-               // here, we just get the shower profile for EM, HAD showers 
-               //
-               // after we get raytrace solutions, and obtain the view angle, we calculate the signal at 1m and propagate them
-
-               //cout<<"0";
-
-               // only EM shower
-               if ( settings1->SHOWER_MODE == 0 ) {
-      
-                   if ( emfrac > 1.e-10 ) {
-
-                       //signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, EM_shower_depth_m, EM_shower_Q_profile, EM_LQ );
-                       signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
-                   }
-                   else LQ = 0;
-
-                   primary_shower = 0;
-                   //cout<<"LQ : "<<LQ<<endl;
-               }
-
-               // only HAD shower
-               else if ( settings1->SHOWER_MODE == 1 ) {
-
-                   if ( hadfrac > 1.e-10 ) {
-                       //signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, HAD_shower_depth_m, HAD_shower_Q_profile, HAD_LQ );
-                       signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
-                   }
-                   else LQ = 0;
-
-
-                   primary_shower = 1;
-                   //cout<<"LQ : "<<LQ<<endl;
-               }
-
-               // use both EM and HAD 
-               else if ( settings1->SHOWER_MODE == 2 ) {
-
-                   if ( emfrac > 1.e-10 ) {
-
-                       signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, EM_shower_depth_m, EM_shower_Q_profile, EM_LQ );
-                   }
-                   else EM_LQ = 0;
-
-                   if ( hadfrac > 1.e-10 ) {
+				if ( EM_LQ!=EM_LQ ) {// if nan
+					EM_LQ = 0.;
+				}
+				if ( HAD_LQ!=HAD_LQ ) {// if nan
+					HAD_LQ = 0.;
+				}
                
-                       signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, HAD_shower_depth_m, HAD_shower_Q_profile, HAD_LQ );
-                   }
-                   else HAD_LQ = 0;
+				// get total LQ
+				LQ = EM_LQ + HAD_LQ;
 
+				/*
+				cout<<"EM_LQ : "<<EM_LQ<<endl;
+				cout<<"HAD_LQ : "<<HAD_LQ<<endl;
+				cout<<"LQ : "<<LQ<<endl;
+				*/
 
+				// make shower profiles same length
+				if ( EM_LQ > 0 && HAD_LQ > 0 ) { // if both EM and HAD shower exist
 
-                   if ( EM_LQ!=EM_LQ ) {// if nan
-                       EM_LQ = 0.;
-                   }
-                   if ( HAD_LQ!=HAD_LQ ) {// if nan
-                       HAD_LQ = 0.;
-                   }
+					double d_depth_EM = EM_shower_depth_m[1] - EM_shower_depth_m[0];
+					double d_depth_HAD = HAD_shower_depth_m[1] - HAD_shower_depth_m[0];
 
-               
-                   // get total LQ
-                   LQ = EM_LQ + HAD_LQ;
+					int lastbin;
 
-                   /*
-                   cout<<"EM_LQ : "<<EM_LQ<<endl;
-                   cout<<"HAD_LQ : "<<HAD_LQ<<endl;
-                   cout<<"LQ : "<<LQ<<endl;
-                   */
+					while ( (int)EM_shower_Q_profile.size() != (int)HAD_shower_Q_profile.size() ) {
+						if ( (int)EM_shower_Q_profile.size() > (int)HAD_shower_Q_profile.size() ) {
+							lastbin = HAD_shower_Q_profile.size();
+							HAD_shower_Q_profile.push_back( 0 );
+							HAD_shower_depth_m.push_back( HAD_shower_depth_m[lastbin-1] + d_depth_HAD );
+						}
+						else if ( (int)EM_shower_Q_profile.size() < (int)HAD_shower_Q_profile.size() ) {
+							lastbin = EM_shower_Q_profile.size();
+							EM_shower_Q_profile.push_back( 0 );
+							EM_shower_depth_m.push_back( EM_shower_depth_m[lastbin-1] + d_depth_EM );
+						}
+					}
+				}
 
-
-                   //
-                   // make shower profiles same length
-                   if ( EM_LQ > 0 && HAD_LQ > 0 ) { // if both EM and HAD shower exist
-
-
-                       double d_depth_EM = EM_shower_depth_m[1] - EM_shower_depth_m[0];
-                       double d_depth_HAD = HAD_shower_depth_m[1] - HAD_shower_depth_m[0];
-
-                       int lastbin;
-
-                       while ( (int)EM_shower_Q_profile.size() != (int)HAD_shower_Q_profile.size() ) {
-
-                           if ( (int)EM_shower_Q_profile.size() > (int)HAD_shower_Q_profile.size() ) {
-
-                               lastbin = HAD_shower_Q_profile.size();
-
-                               HAD_shower_Q_profile.push_back( 0 );
-
-                               HAD_shower_depth_m.push_back( HAD_shower_depth_m[lastbin-1] + d_depth_HAD );
-
-                           }
-
-                           else if ( (int)EM_shower_Q_profile.size() < (int)HAD_shower_Q_profile.size() ) {
-
-                               lastbin = EM_shower_Q_profile.size();
-
-                               EM_shower_Q_profile.push_back( 0 );
-
-                               EM_shower_depth_m.push_back( EM_shower_depth_m[lastbin-1] + d_depth_EM );
-
-                           }
-
-                       }
-
-                   }
-
-                   //cout<<"LQ : "<<LQ<<endl;
-
-                   //signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, EM_shower_depth_m, EM_shower_Q_profile, EM_LQ );
-                   //signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, HAD_shower_depth_m, HAD_shower_Q_profile, HAD_LQ );
-                   //cout<<"EM_LQ : "<<EM_LQ<<", HAD_LQ : "<<HAD_LQ<<endl;
-                   //
-               
-
-               } // shower_mode = 2
-
-
+				//cout<<"LQ : "<<LQ<<endl;
+				//cout<<"EM_LQ : "<<EM_LQ<<", HAD_LQ : "<<HAD_LQ<<endl;
+			} // shower_mode = 2
 
                // only one dominant shower (either EM or HAD)
-               else if ( settings1->SHOWER_MODE == 3 ) {
-
-
-                   // find the dominant shower among EM and HAD
-                   if ( emfrac > hadfrac ) {
-
-                       signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
-
-                       primary_shower = 0;
-
-                   }
-                   else {
-
-                       signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
-                   
-                       primary_shower = 1;
-                   }
-
-
-               } // shower_mode = 3
-
-
-
-
-           } // tdomain mode
-
-
-    }// if pickposnu
+			else if ( settings1->SHOWER_MODE == 3 ) {
+				// find the dominant shower among EM and HAD
+				if ( emfrac > hadfrac ) {
+					signal->GetShowerProfile( pnu*emfrac, 0, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
+					primary_shower = 0;
+				}
+				else {
+					signal->GetShowerProfile( pnu*hadfrac, 1, settings1->SHOWER_STEP, settings1->SHOWER_PARAM_MODEL, shower_depth_m, shower_Q_profile, LQ );
+					primary_shower = 1;
+				}
+			} // shower_mode = 3
+		} // tdomain mode
+	}// if pickposnu
 
 
 }
@@ -2491,6 +2383,248 @@ void Interaction::PickExact (IceModel *antarctica, Detector *detector, Settings 
     
     
 }
+
+void Interaction::PickFromRAandDec (IceModel *antarctica, Detector *detector, Settings *settings1, double RA, double DEC, int UTC, double thisR, double LAT, double LON) {
+    
+	double range = settings1->POSNU_RADIUS;   // test value, 2km radius. can be changed to read from Settings
+	
+	double X, Y, Z, D;    // X,Y wrt detector core, and it's distance D
+	double sumX = 0.;
+	double sumY = 0.; 
+	double sumZ = 0.;
+	int count = 0;
+
+	for (int i = 0; i < detector->stations[0].strings.size(); i++){
+		for (int j = 0; j < detector->stations[0].strings[i].antennas.size(); j++){
+			//std::cout << "AntennaPos:X:Y:Z:: " << detector->stations[0].strings[i].antennas[j].GetX() <<  " : " << detector->stations[0].strings[i].antennas[j].GetY() << " : " << detector->stations[0].strings[i].antennas[j].GetZ() <<std::endl;
+			sumX = sumX + detector->stations[0].strings[i].antennas[j].GetX();
+			sumY = sumY + detector->stations[0].strings[i].antennas[j].GetY();
+			sumZ = sumZ + detector->stations[0].strings[i].antennas[j].GetZ();
+			count++;
+		}
+	}
+	double avgX = sumX/double(count);
+	double avgY = sumY/double(count);
+	double avgZ = sumZ/double(count);
+	//std::cout << "DetectorStation:X:Y:: "  << detector->stations[0].GetX() << " : " << detector->stations[0].GetY() << std::endl;
+	
+	//we are going to need these to calculate the posnu X, Y, Z, wrt to the detector core
+	double thisPhi = 0.;
+	double thisTheta = 0.;
+	
+	//to get them, we need to use the RA, DEC, and UTC 
+	
+		//need to decode the UTC time
+		int unixtime = UTC;
+		time_t dummy_time = unixtime;
+		tm *time = gmtime(&dummy_time);
+		int year = time->tm_year+1900;
+		int month = time->tm_mon+1;
+		int day = time->tm_mday;
+		int hour = time->tm_hour;
+		int min = time->tm_min;
+		int sec = time->tm_sec;
+		
+		//do error checking
+		//make sure they didn't ask for an unsupported year
+		if(year<2009 || year>2019){//I didn't code to account for these!
+			std::cout<<"This code only works for 2009->2019! Your year requested is: "<<year<<std::endl;
+			std::cout<<"Reverting to 2018"<<std::endl;
+			year=2018;
+		}
+		
+		//need to compute the days to the start of the month on the UTC we entered
+		int days_till_start=0;
+		switch(month){
+			case 1: {days_till_start = 0; break;}
+			case 2: {days_till_start = 31; break;}
+			case 3: {days_till_start = 59; break;}
+			case 4: {days_till_start = 90; break;}
+			case 5: {days_till_start = 120; break;}
+			case 6: {days_till_start = 151; break;}
+			case 7: {days_till_start = 181; break;}
+			case 8: {days_till_start = 212; break;}
+			case 9: {days_till_start = 243; break;}
+			case 10: {days_till_start = 273; break;}
+			case 11: {days_till_start = 304; break;}
+			case 12: {days_till_start = 334; break;}
+		}
+		//if it's a leap year, we need to add one day
+		if((year==2012 || year==2016) && month>2) days_till_start++;
+		
+		//need to compute the days to the start of this year on the UTC we entered
+		int days_to_year=0;
+		switch(year){
+			case 2009: {days_to_year = 3286.5; break;}
+			case 2010: {days_to_year = 3651.5; break;}
+			case 2011: {days_to_year = 4016.5; break;}
+			case 2012: {days_to_year = 4381.5; break;}
+			case 2013: {days_to_year = 4747.5; break;}
+			case 2014: {days_to_year = 5112.5; break;}
+			case 2015: {days_to_year = 5477.5; break;}
+			case 2016: {days_to_year = 5842.5; break;}
+			case 2017: {days_to_year = 6208.5; break;}
+			case 2018: {days_to_year = 6573.5; break;}
+			case 2019: {days_to_year = 6938.5; break;}
+		}
+		
+		//now, to compute the time since J2000
+		double part_of_day = (double(hour) + (double(min)/60.) + (double(min)/60./60.))/24.; //convert this to a fraction of 24 hours
+		double days_since_j2000 = part_of_day + double(days_till_start) + days_to_year + double(day);
+		double hours_in_day = (double(hour) + (double(min)/60.));
+		
+		//now to compute the local siderial time
+		double LST = 100.46 + (0.985647 * days_since_j2000) + LON + (15.*hours_in_day);
+		
+		//now to re range the LST
+		if(LST<0.){ //if it's less 0
+			while(LST<0.) LST+=360; //while it's less 0, keep adding 360.
+		}
+		if(LST>360.){ //if it's great 0
+			while(LST>360.) LST-=360; //while it's greater 0, keep subtracting 360.
+		}
+		
+		//finally to compute the hour angle
+		double HA = LST - RA;
+		
+		//now to re range the HA
+		if(HA<0.){ //if it's less 0
+			while(HA<0.) HA+=360; //while it's less 0, keep adding 360.
+		}
+		if(HA>360.){ //if it's great 0
+			while(HA>360.) HA-=360; //while it's greater 0, keep subtracting 360.
+		}
+		
+		//now to compute a bunch of the stuff we're going to need in the alt az computation
+		double sin_dec = TMath::Sin(DEC*TMath::DegToRad());
+		double sin_lat = TMath::Sin(LAT*TMath::DegToRad());
+		double cos_dec = TMath::Cos(DEC*TMath::DegToRad());
+		double cos_lat = TMath::Cos(LAT*TMath::DegToRad());
+		double cos_ha = TMath::Cos(HA*TMath::DegToRad());
+		
+		//compute the sine of altitude
+		double sin_alt = (sin_dec * sin_lat) + (cos_dec * cos_lat * cos_ha);
+		//now get the actual altitude
+		double alt = TMath::ASin(sin_alt)*TMath::RadToDeg();
+	
+		//compute the cosine of A
+		double cos_a = (sin_dec - (sin_alt * sin_lat)) / TMath::Cos(alt*TMath::DegToRad()) / cos_lat;
+		//now get the actual A
+		double a = TMath::ACos(cos_a)*TMath::RadToDeg();
+	
+		//now, check to see if we need to re-range the A to get azimuth
+		double az =0.;
+		if(TMath::Sin(HA*TMath::DegToRad())<0) az = a; //if sin(HA)<0 then az = A
+		else az = 360. - a; //otherwise Az = 360 - A
+		
+		//okay, now we need to convert to a phi and theta in the station coordinates
+		
+		//now to convert to Antarctic continent frame
+		//the code above returns 0 -> 360 where N=0, E=90, S=180, W=270, which is Clock-Wise
+		//so, the first thing we need to do is change the handedness to Counter Clock-Wise
+		//need E=0, N=90, W=180, S=270
+	
+		double new_az = 450. - az;
+		if(new_az > 360.) new_az-+360.;
+	
+		//now, we need to convert from 0 -> 360 to -180 -> +180
+		double new_domain_az = new_az;
+		if(new_az > 180.) new_domain_az = -360. + new_az;
+		
+		//finally, convert to radians
+		double alt_radians = alt*TMath::DegToRad();
+		double new_domain_az_radians = new_domain_az*TMath::DegToRad();
+		
+		//finally, to re-assign thisPhi and thisTheta
+		thisPhi = new_domain_az_radians;
+		thisTheta = alt_radians;
+	
+	//calculate posnu's X, Y wrt detector core
+	if (detector->Get_mode() == 1 || detector->Get_mode() == 2 ||detector->Get_mode() == 3 ||detector->Get_mode() == 4) {   // detector mode is for ARA stations;
+		X = avgX + thisR*cos(thisPhi)*cos(thisTheta);
+		Y = avgY + thisR*sin(thisPhi)*cos(thisTheta);
+		D = pow(X*X + Y*Y, 0.5);
+	}
+	//calculate posnu's X, Y wrt to (0,0)
+	else {  // for mode = 0 (testbed)
+		X = thisR*cos(thisPhi)*cos(thisTheta);
+		Y = thisR*sin(thisPhi)*cos(thisTheta);
+		D = pow(X*X + Y*Y, 0.5);
+	}
+
+	Z = avgZ + thisR*sin(thisTheta);
+	//std::cout << "CenterPosition:X:Y:Z:: "  << avgX << " : " << avgY << " : " << avgZ <<  std::endl;
+	//std::cout << "Central position: " << centerZ << " : " << Z << " : " << X << " : " << Y << std::endl;
+    
+	posnu.SetXYZ(X,Y,Z);
+	//    std::cout << "Posnu:X:Y:Z:: "  << posnu.GetX() << " : " << posnu.GetY() << " : " << posnu.GetZ() <<  std::endl;
+	//    std::cout << "Icesurface:: " << antarctica->Surface(posnu.Lon(), posnu.Lat()) << std::endl;
+	
+	pickposnu = 1;  // all PickNear sucess for pickposnu
+    
+	// set the position where nu enter the earth
+	r_in = antarctica->WhereDoesItEnter(posnu, nnu);
+    
+	// set the position where nu exit the earth
+	nuexit = antarctica->WhereDoesItLeave(posnu, nnu);
+    
+	// now set the position where nu enter the ice
+	if (antarctica->IceThickness(r_in) && r_in.Lat()<antarctica->GetCOASTLINE()) { // if r_in (position where nu enter the earth) is antarctic ice
+		r_enterice = r_in;  // nu enter the earth is same with nu enter the ice
+	}
+	else {  // nu enter the rock of earth. so we have to calculate the r_enterice
+		Position thisnuenterice_tmp1;
+		Position thisnuenterice_tmp2;
+		// now first rough calculation with step size 5.E4.
+		if (WhereDoesItEnterIce(posnu,nnu,5.E4,thisnuenterice_tmp1, antarctica)) {
+			thisnuenterice_tmp2=thisnuenterice_tmp1+5.E4*nnu;   // get one more step from 5.E4. calculation
+			if (WhereDoesItEnterIce(thisnuenterice_tmp2,nnu,5.E3, thisnuenterice_tmp1, antarctica)) {// second pass with finer binning
+				thisnuenterice_tmp2=thisnuenterice_tmp1+5.E3*nnu;   // get one more step from 5.E3. calculation
+				if (WhereDoesItEnterIce(thisnuenterice_tmp2,nnu,5.E2, thisnuenterice_tmp1, antarctica)) {// third pass with finer binning
+					thisnuenterice_tmp2=thisnuenterice_tmp1+5.E2*nnu;   // get one more step from 5.E2. calculation
+					if (WhereDoesItEnterIce(thisnuenterice_tmp2,nnu,5.E1, thisnuenterice_tmp1, antarctica)) {// fourth pass with finer binning (final)
+						thisnuenterice_tmp2=thisnuenterice_tmp1;   // max 50m step result
+					}//fourth pass (final)
+				}//third pass
+			}//second pass
+		}//first pass
+		else {  // no result from the first step calculation
+			cout<<"no nuenterice result from calculation!!!"<<endl;
+			thisnuenterice_tmp2 = posnu;
+		}
+		r_enterice = thisnuenterice_tmp2;
+	}// else; nu enter the rock of earth, so calculated the ice enter point
+	
+	// now we have to calcuate the nu ice exit position
+	if (antarctica->IceThickness(nuexit) && nuexit.Lat()<antarctica->GetCOASTLINE()) { // if nuexit (position where nu exit the earth) is antarctic ice
+		nuexitice = nuexit;  // nu exit the earth is same with nu exit the ice
+	}
+	else {  // nu exit the rock of earth. so we have to calculate the nuexitice
+		Position thisnuexitice_tmp1;
+		Position thisnuexitice_tmp2;
+		// now first rough calculation with step size 5.E4.
+		if (WhereDoesItExitIceForward(posnu,nnu,5.E4,thisnuexitice_tmp1, antarctica)) {
+			thisnuexitice_tmp2=thisnuexitice_tmp1-5.E4*nnu;   // get one more step from 5.E4. calculation
+			if (WhereDoesItExitIceForward(thisnuexitice_tmp2,nnu,5.E3, thisnuexitice_tmp1, antarctica)) {// second pass with finer binning
+				thisnuexitice_tmp2=thisnuexitice_tmp1-5.E3*nnu;   // get one more step from 5.E3. calculation
+				if (WhereDoesItExitIceForward(thisnuexitice_tmp2,nnu,5.E2, thisnuexitice_tmp1, antarctica)) {// third pass with finer binning
+					thisnuexitice_tmp2=thisnuexitice_tmp1-5.E2*nnu;   // get one more step from 5.E2. calculation
+					if (WhereDoesItExitIceForward(thisnuexitice_tmp2,nnu,5.E1,thisnuexitice_tmp1, antarctica)) {// fourth pass with finer binning (final)
+						thisnuexitice_tmp2=thisnuexitice_tmp1;   // max 50m step result
+					}//fourth pass (final)
+				}//third pass
+			}//second pass
+		}//first pass
+		else {  // no result from the first step calculation
+			cout<<"no nuexitice result from calculation!!!"<<endl;
+			thisnuexitice_tmp2 = posnu;
+		}
+		nuexitice = thisnuexitice_tmp2;
+	}// else; nu enter the rock of earth, so calculated the ice enter point
+}
+
+
+
 /*
 void Interaction::PickExactXYZ (IceModel *antarctica, Detector *detector, Settings *settings1, double X, double Y, double Z) {
     
