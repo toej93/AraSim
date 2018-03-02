@@ -1468,3 +1468,14 @@ Updating AraSim.cc to be compatible with INTERACTION_MODE==5
 Also updating Primaries.cc and Primaries.h to be compatible with INTERACTION_MODE==5
 
 ============================================================================
+
+2018/03/02 Brian Clark:
+
+Updating Settings.cc and Settings.h to be compatible with INTERACTION_MODE==5
+Specifically, added the ability to input the:
+RA: right ascension of a source in the J2000 frame
+DEC: declination of a source in the J2000 frame
+UTC: the UTC time for the source
+LAT: the latitude of the observer/station (set to A2 location for right now)
+LON: the longitude of the observer/station (set to A3 location for right now)
+============================================================================

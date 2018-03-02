@@ -152,6 +152,18 @@ class Settings
         double NNU_PHI;// default : nnu phi: 45 deg
 
         double NNU_D_PHI;// default : nnu_d_phi : 5 deg
+        
+        //support for cosmic mode
+	double RA; //the right ascension of the source, in an angle from -180 degrees to 180 degrees, where -180 degrees is down, and +180 degree is up
+	
+	double DEC; //the declination of the source, in an angle from 0 -> 360
+	
+	int UTC; //the Unixtime where you'd like to simulate the source
+	
+	double LAT; //the latitude of the station
+	
+	double LON; //the longitude of the station
+        
 
         double CALPUL_OFFCONE_ANGLE;    // for calpulser events, what's the offcone angle value?
 
@@ -285,6 +297,7 @@ class Settings
 
 	int APPLY_NOISE_FIGURE; // 0: do not apply new noise figure from Thomas Meures 2016
 	                        // 1: apply new noise figure to data
+				
 
 
 //arrays for saving read in event features in EVENT_GENERATION_MODE=1

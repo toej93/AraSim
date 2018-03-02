@@ -158,6 +158,16 @@ outputdir="outputs"; // directory where outputs go
   NNU_PHI=0.785;// default : nnu phi : 45 deg
 
   NNU_D_PHI=0.0873;// default : nnu_d_phi : 5 deg
+  
+  RA=0.0; //default: right ascension of zero degrees
+  
+  DEC=0.0; //default: declination of zero degrees
+  
+  UTC=1520008772; //default: March 2 2018 ~11:40 AM EST, they day when BAC added this feature
+  
+  LAT=-89.8105588; //default: the latitude of A2
+  
+  LON=-109.70392; //default: the longitude of A2
 
     
     CALPULSER_ON=0; // default : calpulsers off
@@ -460,7 +470,21 @@ void Settings::ReadFile(string setupfile) {
               else if (label == "NNU_D_PHI") {
                   NNU_D_PHI = atof( line.substr(line.find_first_of("=") + 1).c_str() );
               }
-
+              else if (label == "RA") {
+                  RA = atof( line.substr(line.find_first_of("=") + 1).c_str() );
+              }
+              else if (label == "DEC") {
+                  DEC = atof( line.substr(line.find_first_of("=") + 1).c_str() );
+              }
+              else if (label == "UTC") {
+                  UTC = atof( line.substr(line.find_first_of("=") + 1).c_str() );
+              }
+              else if (label == "LAT") {
+                  LAT = atof( line.substr(line.find_first_of("=") + 1).c_str() );
+              }              
+              else if (label == "LON") {
+                  LAT = atof( line.substr(line.find_first_of("=") + 1).c_str() );
+              }                
               else if (label == "DATA_LIKE_OUTPUT") {
                   DATA_LIKE_OUTPUT = atoi( line.substr(line.find_first_of("=") + 1).c_str() );
               }
