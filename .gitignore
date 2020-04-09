@@ -1,4 +1,6 @@
 *.o
+*.so
 eventSimDict.C
 eventSimDict.h
 AraSim
+*.ipynb
